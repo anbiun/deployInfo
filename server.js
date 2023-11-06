@@ -2,18 +2,18 @@ const express = require('express');
 const app = express();
 const jwt = require('jsonwebtoken'); // เพิ่ม jsonwebtoken
 const bodyParser = require('body-parser');
-
+const port = 3001;
 const privateKey = 'nitipon1988';
 
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/pages/index.html');
-});
+// app.get('/', (req, res) => {
+//     res.sendFile(__dirname + '/pages/index.html');
+// });
 
-app.listen(3000, () => {
-    console.log('Server started on http://localhost:3000');
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
 });
 
 app.post('/encode', (req, res) => {
