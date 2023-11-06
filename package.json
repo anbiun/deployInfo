@@ -5,7 +5,7 @@
     "nodemon": "^3.0.1"
   },
   "scripts": {
-    "dev": "node app.js",
-    "debug": "nodemon --inspect app.js"
+    "dev": "node server.js",
+    "debug": "nodemon --inspect server.js"
 }
 }
