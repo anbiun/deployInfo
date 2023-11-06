@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+    crossorigin="anonymous"></script>
+
+  <!-- JQuery -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <title>Deploy Info</title>
+</head>
+<style>
+  .text-pink {
+    color: #e83e8c
+  }
+  .text-blue {
+    color: #3e63e8
+  }
+</style>
+
+<body class="container mt-5">
+  <div class="mb-3">
+    <label for="fileInput" class="form-label">เลือกไฟล์</label>
+    <input class="form-control" type="file" id="fileInput" webkitdirectory directory multiple>
+  </div>
+  <div class="mb-3">
+    <label for="exampleFormControlTextarea1" class="form-label">ตัวอย่าง Object ที่จะเข้ารหัส</label>
+    <textarea class="form-control text-pink" id="areaResult" rows="10" disabled></textarea>
+  </div>
+
+  <div class="mb-3">
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" id="areaEditSwitch">
+      <label class="form-check-label" for="areaEditSwitch">แก้ไข</label>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <button type="button" id="btnEncrypt" class="btn btn-outline-primary">Encrypt</button>
+    <button type="button" id="btnDownload" class="btn btn-success">Download</button>
+    <button type="button" id="btnDecrypt" class="btn btn-outline-success"
+      onclick="document.getElementById('fileDec').click();">Decrypt</button>
+  </div>
+  <div class="mb-3">
+    <label for="encResult" class="form-label">Result</label>
+    <textarea class="form-control text-blue" id="encResult" rows="2" disabled></textarea>
+  </div>
+  <div class="mb-3">
+    <input type="file" id="fileDec" accept=".NITIPON" style="display: none;" />
+  </div>
+
+</body>
+
+</html>
+
+<script type="text/javascript">
+  const el = {
+    fileInput: $('#fileInput'),
+    areaResult: $('#areaResult'),
+    areaEditSwitch: $('#areaEditSwitch'),
+    encResult: $('#encResult'),
+    btnEncrypt: $('#btnEncrypt'),
+    btnDownload: $('#btnDownload'),
+    fileDecrypt: $('#fileDec')
+  }
+
+  const callApi = {
+    async encode(req) {
+      const resp = await axios.post('/encode', req)
+        .then(function (response) {
+          return response.data.data
+        })
+        .catch(function (error) {
+          return error
+        });
+
+      return resp
+    },
+    async decode(req) {
+      const resp = await axios.post('/decode', req)
+        .then(function (response) {
+          return response.data.data
+        })
+        .catch(function (error) {
+          return error
+        });
+
+      return resp
+    }
+
+  }
+
+  const enc = {
+    objInfo: {
+      files: {},
+      deployinfo: {
+        date: new Date().toLocaleString('en-US', { hour12: false }),
+        user: 'cf303645'
+      }
+    },
+    objEnc: '',
+    getFileName() {
+      // แยกวันที่และเวลาออกจากข้อความ
+      let inputText = this.objInfo.deployinfo.date
+      const [datePart, timePart] = inputText.split(', ');
+
+      // แยกวันที่เป็นส่วนย่อย และลบเครื่องหมาย '/'
+      const dateParts = datePart.split('/');
+      const day = dateParts[0].padStart(2, '0');
+      const month = dateParts[1].padStart(2, '0');
+      const year = dateParts[2];
+
+      // แยกเวลาเป็นส่วนย่อย และลบเครื่องหมาย ':'
+      const timeParts = timePart.split(':');
+      const hours = timeParts[0].padStart(2, '0');
+      const minutes = timeParts[1];
+      const seconds = timeParts[2];
+
+      // สร้างข้อความใหม่ในรูปแบบที่ต้องการ
+      const formattedText = `${hours}${minutes}${seconds}_${day}${month}${year}`;
+
+      return formattedText;
+    },
+
+    initEvent() {
+      el.fileInput.on('change', function () {
+        let files = this.files
+        let newFileData = Array.from(files).map(file => ({
+          dir: file.webkitRelativePath,
+          lastModifiedDate: file.lastModifiedDate.toLocaleString('en-US', { hour12: false })
+        }));
+
+        // สร้าง JSON Object ใหม่ที่มีข้อมูลที่คัดลอกมาจาก files
+        enc.objInfo.files = newFileData
+        el.areaResult.text(JSON.stringify(enc.objInfo, undefined, 2))
+      })
+
+      el.fileDecrypt.on('change', function () {
+        const selectedFile = this.files[0]; // เลือกไฟล์แรกที่ถูกเลือก
+        if (selectedFile) {
+          const reader = new FileReader();
+          let decodeResp
+          reader.onload = async function (e) {
+            // ข้อมูลของไฟล์ที่ถูกอ่านอยู่ใน e.target.result
+            const fileContent = e.target.result;
+            decodeResp = await callApi.decode({ token: fileContent })
+            el.encResult.text(JSON.stringify(decodeResp, undefined, 2))
+            el.encResult.prop('rows',10)
+          };
+          reader.readAsText(selectedFile);
+        }
+      })
+
+      el.areaEditSwitch.on('change', function () {
+        el.areaResult.prop('disabled', !this.checked)
+      })
+
+      el.areaResult.on('blur', () => {
+        el.areaEditSwitch.prop('checked', false)
+        el.areaEditSwitch.trigger('change')
+      })
+
+      el.btnEncrypt.on('click', async () => {
+        const resp = await callApi.encode(enc.objInfo)
+        el.encResult.text(resp)
+        el.encResult.prop('rows',2)
+        this.objEnc = resp
+      })
+
+      el.btnDownload.on('click', () => {
+        // สร้าง Blob object จากข้อความ
+        const blob = new Blob([this.objEnc], { type: 'text/plain' });
+
+        // สร้าง URL object เพื่อใช้ในการสร้างลิงก์ดาวน์โหลด
+        const url = window.URL.createObjectURL(blob);
+
+        // สร้างลิงก์ดาวน์โหลด
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `DeployInfo_${this.getFileName()}.NITIPON`
+
+        // เพิ่มลิงก์ลงในเอกสาร
+        document.body.appendChild(a);
+
+        // คลิกลิงก์เพื่อดาวน์โหลด
+        a.click();
+
+        // ลบลิงก์
+        window.URL.revokeObjectURL(url);
+      })
+    }
+  }
+
+  function auto_grow(element) {
+    element.style.height = "5px";
+    element.style.height = (element.scrollHeight) + "px";
+  }
+
+  $(document).ready(() => {
+    enc.initEvent()
+  })
+
+</script>
