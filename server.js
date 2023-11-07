@@ -4,11 +4,6 @@ const jwt = require('jsonwebtoken'); // เพิ่ม jsonwebtoken
 const bodyParser = require('body-parser');
 const port = 3001;
 const privateKey = 'nitipon1988';
-var indexRouter = require('../routes/index');
-
-const whitelist = [
-  '*'
-];
 
 app.use(bodyParser.json());
 app.use(express.static('public'));
