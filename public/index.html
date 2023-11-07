@@ -17,31 +17,49 @@
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"
     integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+    integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <title>Deploy Info</title>
 </head>
 <style>
   .text-pink {
     color: #e83e8c
   }
+
   .text-blue {
     color: #3e63e8
   }
 </style>
 
 <body class="container mt-5">
+
+
   <div class="mb-3">
     <label for="fileInput" class="form-label">Read File</label>
     <input class="form-control" type="file" id="fileInput" webkitdirectory directory multiple>
   </div>
-  <div class="mb-3">
-    <label for="exampleFormControlTextarea1" class="form-label">Preview Object</label>
-    <textarea class="form-control text-pink" id="areaResult" rows="10" disabled></textarea>
-  </div>
 
   <div class="mb-3">
-    <div class="form-check form-switch">
-      <input class="form-check-input" type="checkbox" id="areaEditSwitch">
-      <label class="form-check-label" for="areaEditSwitch">Edit</label>
+    <div class="accordion" id="accordionPreview">
+      <div class="card">
+        <div class="card-header d-flex align-items-center" id="headingPreview">
+          <div class="col">
+            <button class="btn btn-outline-danger" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePreview" aria-expanded="true" aria-controls="collapsePreview">
+              Preview Data
+            </button>
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="areaEditSwitch">
+            <label class="form-check-label" for="areaEditSwitch">Edit</label>
+          </div>
+        </div>
+    
+        <div id="collapsePreview" class="collapse show" aria-labelledby="headingPreview" data-bs-parent="#accordionPreview">
+          <textarea class="form-control card-body text-pink" id="areaResult" rows="10" disabled></textarea>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -52,8 +70,21 @@
       onclick="document.getElementById('fileDec').click();">Decrypt</button>
   </div>
   <div class="mb-3">
-    <label for="encResult" class="form-label">Result</label>
-    <textarea class="form-control text-blue" id="encResult" rows="2" disabled></textarea>
+    <div class="accordion" id="accordionResult">
+      <div class="card">
+        <div class="card-header d-flex align-items-center" id="headingResult">
+          <div class="col">
+            <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#collapseResult" aria-expanded="true" aria-controls="collapseResult">
+              Result Data
+            </button>
+          </div>
+        </div>
+    
+        <div id="collapseResult" class="collapse show" aria-labelledby="headingResult" data-bs-parent="#accordionResult">
+          <textarea class="form-control text-blue" id="encResult" rows="2" disabled></textarea>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="mb-3">
     <input type="file" id="fileDec" accept=".NITIPON" style="display: none;" />
@@ -109,6 +140,7 @@
       }
     },
     objEnc: '',
+
     getFileName() {
       // แยกวันที่และเวลาออกจากข้อความ
       let inputText = this.objInfo.deployinfo.date
@@ -147,18 +179,38 @@
 
       el.fileDecrypt.on('change', function () {
         const selectedFile = this.files[0]; // เลือกไฟล์แรกที่ถูกเลือก
-        if (selectedFile) {
-          const reader = new FileReader();
-          let decodeResp
-          reader.onload = async function (e) {
-            // ข้อมูลของไฟล์ที่ถูกอ่านอยู่ใน e.target.result
-            const fileContent = e.target.result;
-            decodeResp = await callApi.decode({ token: fileContent })
-            el.encResult.text(JSON.stringify(decodeResp, undefined, 2))
-            el.encResult.prop('rows',10)
-          };
-          reader.readAsText(selectedFile);
+        if(!selectedFile) {
+          return
         }
+
+        el.encResult.prop('rows', 10)
+        const zip = new JSZip();
+        zip.loadAsync(selectedFile)
+          .then((contents) => {
+            // อ่านไฟล์ data.json จาก ZIP
+            return contents.file('token.json').async('text');
+          })
+          .then(async (dataToken) => {
+            decodeResp = await callApi.decode({ token: dataToken })
+            el.encResult.text(JSON.stringify(decodeResp, undefined, 2))
+            
+          })
+          .catch((error) => {
+            el.encResult.text(error)
+          });
+
+        // if (selectedFile) {
+        //   const reader = new FileReader();
+        //   let decodeResp
+        //   reader.onload = async function (e) {
+        //     // ข้อมูลของไฟล์ที่ถูกอ่านอยู่ใน e.target.result
+        //     const fileContent = e.target.result;
+        //     decodeResp = await callApi.decode({ token: fileContent })
+        //     el.encResult.text(JSON.stringify(decodeResp, undefined, 2))
+        //     el.encResult.prop('rows', 10)
+        //   };
+        //   reader.readAsText(selectedFile);
+        // }
       })
 
       el.areaEditSwitch.on('change', function () {
@@ -173,37 +225,48 @@
       el.btnEncrypt.on('click', async () => {
         const resp = await callApi.encode(enc.objInfo)
         el.encResult.text(resp)
-        el.encResult.prop('rows',2)
+        el.encResult.prop('rows', 2)
         this.objEnc = resp
       })
 
       el.btnDownload.on('click', () => {
-        // สร้าง Blob object จากข้อความ
-        const blob = new Blob([this.objEnc], { type: 'text/plain' });
+        if (!this.objEnc) {
+          alert('ยังไม่ได้ Encrypt Data')
+          return
+        }
 
-        // สร้าง URL object เพื่อใช้ในการสร้างลิงก์ดาวน์โหลด
-        const url = window.URL.createObjectURL(blob);
+        const zip = new JSZip()
+        zip.file('token.json', this.objEnc)
+        zip.generateAsync({ type: 'blob' })
+          .then(function (blob) {
+            // สร้าง URL object เพื่อใช้ในการสร้างลิงก์ดาวน์โหลด
+            const url = window.URL.createObjectURL(blob);
 
-        // สร้างลิงก์ดาวน์โหลด
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `DeployInfo_${this.getFileName()}.NITIPON`
+            // สร้างลิงก์ดาวน์โหลด
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `DeployInfo_${enc.getFileName()}.NITIPON`;
 
-        // เพิ่มลิงก์ลงในเอกสาร
-        document.body.appendChild(a);
+            // เพิ่มลิงก์ลงในเอกสาร
+            document.body.appendChild(a);
 
-        // คลิกลิงก์เพื่อดาวน์โหลด
-        a.click();
+            // คลิกลิงก์เพื่อดาวน์โหลด
+            a.click();
 
-        // ลบลิงก์
-        window.URL.revokeObjectURL(url);
+            // ลบลิงก์
+            window.URL.revokeObjectURL(url);
+          })
+        // const blob = new Blob([this.objEnc], { type: 'text/plain' });
+        // const url = window.URL.createObjectURL(blob);
+        // const a = document.createElement('a');
+        // a.href = url;
+        // a.download = `DeployInfo_${this.getFileName()}.NITIPON`
+
+        // document.body.appendChild(a);
+        // a.click();
+        // window.URL.revokeObjectURL(url);
       })
     }
-  }
-
-  function auto_grow(element) {
-    element.style.height = "5px";
-    element.style.height = (element.scrollHeight) + "px";
   }
 
   $(document).ready(() => {
