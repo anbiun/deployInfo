@@ -16,7 +16,7 @@ app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
 
-app.post('/encode', (req, res) => {
+app.post('/api/encode', (req, res) => {
     // สร้างคีย์เป็นรหัสผ่าน (หรือคีย์ลับ) ในที่นี้เราจะใช้ 'mySecretKey' แต่ควรใช้คีย์ที่ปลอดภัยมากขึ้นในสภาวะจริง
 
     // เรียกใช้ฟังก์ชันเพื่อเข้ารหัส objInfo และสร้าง JWT
@@ -27,7 +27,7 @@ app.post('/encode', (req, res) => {
     res.json({ data: encodedToken });
 });
 
-app.post('/decode',(req,res) => {
+app.post('/api/decode',(req,res) => {
     let reqString = JSON.stringify(req.body.token)
     reqString = reqString.replace(/"/g, '');
     const decoded = jwt.verify(reqString, privateKey);
