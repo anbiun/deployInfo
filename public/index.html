@@ -76,7 +76,7 @@
 
   const callApi = {
     async encode(req) {
-      const resp = await axios.post('/encode', req)
+      const resp = await axios.post('/api/encode', req)
         .then(function (response) {
           return response.data.data
         })
@@ -87,7 +87,7 @@
       return resp
     },
     async decode(req) {
-      const resp = await axios.post('/decode', req)
+      const resp = await axios.post('/api/decode', req)
         .then(function (response) {
           return response.data.data
         })
